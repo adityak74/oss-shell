@@ -6,16 +6,16 @@
 
 typedef struct 
 {
-	long seconds;
-	long nanoseconds;
+	long long seconds;
+	long long nanoseconds;
 	char shmMsg[MAX_BUF_SIZE];
 	int sigNotReceived;
 } shared_oss_struct;
 
 typedef struct 
 {
-	long sec;
-	long nano;
+	long long seconds;
+	long long nanoseconds;
 	pid_t procID;
 } shmMsg;
 

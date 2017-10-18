@@ -21,7 +21,7 @@
 
 const int TOTAL_SLAVES = 100;
 const int MAXSLAVES = 20;
-const long long INCREMENTER = 40000;
+const long long INCREMENTER = 4000;
 
 void showHelpMessage();
 void intHandler(int);
@@ -60,11 +60,11 @@ int main(int argc, char const *argv[])
 	int index;
 
 	// memory for args
-	char *i_arg = malloc(sizeof(char)*20);
-	char *m_arg = malloc(sizeof(char)*20);
-	char *x_arg = malloc(sizeof(char)*20);
-	char *s_arg = malloc(sizeof(char)*20);
-	char *k_arg = malloc(sizeof(char)*20); 
+	i_arg = malloc(sizeof(char)*20);
+	m_arg = malloc(sizeof(char)*20);
+	x_arg = malloc(sizeof(char)*20);
+	s_arg = malloc(sizeof(char)*20);
+	k_arg = malloc(sizeof(char)*20); 
 
 	opterr = 0;
 
@@ -185,20 +185,20 @@ int main(int argc, char const *argv[])
 		exit(-1);
 	}
 	if(shmMsgID == -1) {
-		if (((shmMsgID = shmget(key, sizeof(shmMsg), PERM)) == -1) || 
+		if (((shmMsgID = shmget(shMsgIDKey, sizeof(shmMsg), PERM)) == -1) || 
 			(ossShmMsg = (shmMsg*)shmat(shmMsgID, NULL, 0) == (void *)-1) ) {
 			perror("Unable to attach existing shared memory");
 			exit(-1);
 		}
 	} else {
-		ossShmMsg = shmat(shmid, NULL, 0);
+		ossShmMsg = shmat(shmMsgID, NULL, 0);
 		if(ossShmMsg == (void *)-1){
 			perror("Couldn't attach the shared mem");
 			exit(-1);
 		}
 
-		ossShmMsg -> sec = -1;
-		ossShmMsg -> nano = -1;
+		ossShmMsg -> seconds = -1;
+		ossShmMsg -> nanoseconds = -1;
 		ossShmMsg -> procID = -1;
 
 	}
@@ -218,16 +218,23 @@ int main(int argc, char const *argv[])
 	// loop through clock and keep checking shmMsg
 
 	while(messageReceived < TOTAL_SLAVES && shpinfo -> seconds < 2 && shpinfo->sigNotReceived) {
-		//myStruct->ossTimer = myStruct->ossTimer + INCREMENTER;
-		shpinfo -> nanoseconds += shpinfo -> nanoseconds + INCREMENTER;
-		if( shpinfo -> nanoseconds > 1000000000 ) {
+		
+		//fprintf(stderr, "CURRENT MASTER TIME : %ld.%ld\n", shpinfo -> seconds, shpinfo -> nanoseconds);
+		shpinfo -> nanoseconds += INCREMENTER;
+		if( shpinfo -> nanoseconds == 1000000000 ) {
 			shpinfo -> seconds += 1;
+			shpinfo -> nanoseconds = 0;
 		}
 
 		if ( ossShmMsg -> procID != -1 ) {
-			fprintf(file, "Master: Child %d is terminating at %ld.%d\n at my time %ld.%ld", ossShmMsg -> procID, ossShmMsg -> sec, ossShmMsg -> nano, shpinfo -> seconds, shpinfo -> nanoseconds);
+			fprintf(file, "Master: Child %d is terminating at %lld.%lld at my time %lld.%lld\n\n", ossShmMsg -> procID, ossShmMsg -> seconds, ossShmMsg -> nanoseconds, shpinfo -> seconds, shpinfo -> nanoseconds);
 			ossShmMsg -> procID = -1;
 		}
+
+		if(max_processes_at_instant <= TOTAL_SLAVES) {
+	      spawnChildren(1);
+	    }
+	    //fprintf(stderr, "CURRENT MASTER TIME : %ld.%ld\n", shpinfo -> seconds, shpinfo -> nanoseconds);
 	}
 
 	// Cleanup

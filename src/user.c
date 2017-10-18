@@ -22,9 +22,9 @@
 pid_t myPid;
 shared_oss_struct *shpinfo;
 shmMsg *ossShmMsg;
-int processNumber = 0;
 const int QUIT_TIMEOUT = 10;
 volatile sig_atomic_t sigNotReceived = 1;
+int processNumber = 0;
 
 // wait for semaphore
 pid_t r_wait(int *stat_loc) {
@@ -52,12 +52,14 @@ void zombieKiller(int);
 
 int main(int argc, char const *argv[])
 {
+
 	int shmid = 0, shmMsgID = 0;
 	long start_seconds, start_nanoseconds;
 	long current_seconds, current_nanoseconds;
+	long long currentTime;
 	myPid = getpid();
 	char *short_options = "i:s:k:x:";
-	int processNumber, maxproc;
+	int maxproc;
 	char c;
 	sem_t *semlockp;
 
@@ -110,16 +112,15 @@ int main(int argc, char const *argv[])
 	int i=0, j;
 
 	long long duration = 1 + rand() % 1000000;
-	printf("    Slave %d got duration %llu\n", processNumber, duration);
+	printf("    Slave %d got duration %llu\n", maxproc, duration);
 
 	start_seconds = shpinfo -> seconds;
 	start_nanoseconds = shpinfo -> nanoseconds;
-  	current_seconds = shpinfo -> seconds - start_seconds;
-  	current_nanoseconds = shpinfo -> nanoseconds - start_nanoseconds;
+  	long long startTime = start_seconds*1000000000 + start_nanoseconds;
 
   	// SEMAPHORE EXCLUSION
 
-  	if (getnamed("semn", &semlockp, 1) == -1) {
+  	if (getnamed("tesemn", &semlockp, 1) == -1) {
 	  perror("Failed to create named semaphore");
 	  return 1;
 	}
@@ -132,8 +133,29 @@ int main(int argc, char const *argv[])
 
     // CRITICAL SECTION
 
-    fprintf(stderr, "%ld %ld %s\n", current_seconds, current_nanoseconds);
+    fprintf(stderr, "USER PROCNUM# :%d CLOCK READ : %lld %lld\n", getpid() ,shpinfo -> seconds, shpinfo -> nanoseconds);
 
+    while(1) {
+		if(shpinfo->sigNotReceived) {
+		  // something
+		  if(currentTime = ( (shpinfo -> seconds * 1000000000 + shpinfo -> nanoseconds) - startTime) >= duration) {
+		    break;
+		  }
+		  // something
+		}
+		else {
+		  break;
+		}
+	}
+
+	// wait if any other process data in the sharedMessage
+	while( ossShmMsg -> procID != -1 ) {
+		break;
+	}
+
+	ossShmMsg -> procID = getpid();
+	ossShmMsg -> seconds = shpinfo -> seconds;
+	ossShmMsg -> nanoseconds = shpinfo -> nanoseconds;
     // CRITICAL ENDS
 	
 	if (sem_post(semlockp) == -1) {                           /* exit section */
