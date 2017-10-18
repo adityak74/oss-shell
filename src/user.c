@@ -2,14 +2,15 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
-#include <sys/wait.h>
 #include <sys/shm.h>
 #include <semaphore.h>
-#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <time.h>
 
 #include "shm_header.h"
@@ -50,8 +51,6 @@ void zombieKiller(int);
 
 int main(int argc, char const *argv[])
 {
-	sembuf semsignal[1];
-	sembuf semwait[1];
 	int shmid = 0;
 	long start_seconds, start_nanoseconds;
 	long current_seconds, current_nanoseconds;

@@ -4,19 +4,19 @@
 # Added extra function to clen .log and .out files for easy testing
 
 CC	= gcc
-CFLAGS = -lpthread
 TARGETS	= oss user 
 OBJS	= oss.o user.o
 SRCDIR  = src
 HEADER = shm_header.h
+LDFLAGS = -pthread
 
 all: $(TARGETS)
 
 $(TARGETS): % : %.o
-		$(CC) -o $@ $<
+		$(CC) -o $@ $< $(LDFLAGS)
 
 $(OBJS) : %.o : $(SRCDIR)/%.c
-		$(CC) -c $<
+		$(CC) -c $< $(LDFLAGS)
 
 clean:
 		/bin/rm -f *.o $(TARGETS) *.log *.out
