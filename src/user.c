@@ -119,7 +119,7 @@ int main(int argc, char const *argv[])
 
   	// SEMAPHORE EXCLUSION
 
-  	if (getnamed(argv[3], &semlockp, 1) == -1) {
+  	if (getnamed("semn", &semlockp, 1) == -1) {
 	  perror("Failed to create named semaphore");
 	  return 1;
 	}
@@ -149,7 +149,7 @@ int main(int argc, char const *argv[])
 		perror("    Slave could not detach shared memory");
 	}
 
-	if(shmdt(shpinfo) == -1) {
+	if(shmdt(ossShmMsg) == -1) {
 		perror("    Slave could not detach shared memory");
 	}
 
