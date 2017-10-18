@@ -212,8 +212,7 @@ int main(int argc, char const *argv[])
 
 	// Cleanup
 
-	detachAndRemove(shmid, shpinfo);
-	detachAndRemove(shmMsgID, ossShmMsg);
+	cleanup();
 
 	return 0;
 }
@@ -284,6 +283,10 @@ void cleanup() {
   printf("Master about to detach from shared memory\n");
   //Detach and remove the shared memory after all child process have died
   if(detachAndRemove(shmid, shpinfo) == -1) {
+    perror("Failed to destroy shared memory segment");
+  }
+
+  if(detachAndRemove(shmMsgID, ossShmMsg) == -1) {
     perror("Failed to destroy shared memory segment");
   }
 

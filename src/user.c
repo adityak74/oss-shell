@@ -56,9 +56,10 @@ int main(int argc, char const *argv[])
 	long start_seconds, start_nanoseconds;
 	long current_seconds, current_nanoseconds;
 	myPid = getpid();
-	char *short_options = "i:s:k:";
+	char *short_options = "i:s:k:x:";
 	int processNumber, maxproc;
 	char c;
+	sem_t *semlockp;
 
 	//get options from parent process
 	opterr = 0;
