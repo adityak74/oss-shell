@@ -21,6 +21,7 @@
 
 pid_t myPid;
 shared_oss_struct *shpinfo;
+shmMsg *ossShmMsg;
 int processNumber = 0;
 const int QUIT_TIMEOUT = 10;
 volatile sig_atomic_t sigNotReceived = 1;
@@ -107,10 +108,35 @@ int main(int argc, char const *argv[])
   	current_seconds = shpinfo -> seconds - start_seconds;
   	current_nanoseconds = shpinfo -> nanoseconds - start_nanoseconds;
 
+  	// SEMAPHORE EXCLUSION
 
+  	if (getnamed(argv[3], &semlockp, 1) == -1) {
+	  perror("Failed to create named semaphore");
+	  return 1;
+	}
 
+	while (sem_wait(semlockp) == -1)                         /* entry section */ 
+       if (errno != EINTR) { 
+          perror("Failed to lock semlock");
+          return 1;
+       }
 
+    // CRITICAL SECTION
 
+    fprintf(stderr, "%ld %ld %s\n", current_seconds, current_nanoseconds);
+
+    // CRITICAL ENDS
+	
+	if (sem_post(semlockp) == -1) {                           /* exit section */
+	  perror("Failed to unlock semlock");
+	  return 1; 
+	}
+
+	// REMAINDER
+	if (r_wait(NULL) == -1)                              /* remainder section */
+	  return 1;
+
+  	// END
   	printf("    Slave %d exiting\n", processNumber);
 	kill(myPid, SIGTERM);
 	sleep(1);

@@ -30,9 +30,11 @@ static int max_processes_at_instant = 1; // to count the max running processes a
 int process_spawned = 0; // hold the process number
 
 key_t key;
-int shmid, semid, i;
+key_t shMsgIDKey = 1234;
+int shmid, shmMsgID, semid, i;
 pid_t childpid;
 shared_oss_struct *shpinfo;
+shmMsg *ossShmMsg;
 int timerVal;
 int numChildren;
 char *short_options = "hs:l:t:";
@@ -173,6 +175,26 @@ int main(int argc, char const *argv[])
 
 	}
 
+	shmMsgID = shmget(shMsgIDKey, sizeof(shmMsg), IPC_CREAT | 0777);
+	if((shmMsgID == -1) && (errno != EEXIST)){
+		perror("Unable to create shared mem");
+		exit(-1);
+	}
+	if(shmMsgID == -1) {
+		if (((shmMsgID = shmget(key, sizeof(shmMsg), PERM)) == -1) || 
+			(ossShmMsg = (shmMsg*)shmat(shmMsgID, NULL, 0) == (void *)-1) ) {
+			perror("Unable to attach existing shared memory");
+			exit(-1);
+		}
+	} else {
+		ossShmMsg = shmat(shmid, NULL, 0);
+		if(ossShmMsg == (void *)-1){
+			perror("Couldn't attach the shared mem");
+			exit(-1);
+		}
+
+	}
+
 	//Open file and mark the beginning of the new log
 	file = fopen(default_logname, "a");
 	if(!file) {
@@ -184,6 +206,9 @@ int main(int argc, char const *argv[])
 
 	// Fork Off Processes
 	spawnChildren(numChildren);
+
+	// loop through clock and keep checking shmMsg
+
 
 	// Cleanup
 
