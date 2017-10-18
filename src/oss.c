@@ -208,11 +208,12 @@ int main(int argc, char const *argv[])
 	spawnChildren(numChildren);
 
 	// loop through clock and keep checking shmMsg
-
+	
 
 	// Cleanup
 
 	detachAndRemove(shmid, shpinfo);
+	detachAndRemove(shmMsgID, ossShmMsg);
 
 	return 0;
 }
@@ -238,10 +239,10 @@ void spawnChildren(int childrenCount) {
       		pid_t gpid = getpgrp();
 			sprintf(i_arg, "%d", j);
 			sprintf(s_arg, "%d", max_processes_at_instant);
-			
+			sprintf(x_arg, "%d", shmMsgID);
 			// share shmid with children
 			sprintf(k_arg, "%d", shmid);
-			char *userOptions[] = {"./user", "-i", i_arg, "-s", s_arg, "-k", k_arg, (char *)0};
+			char *userOptions[] = {"./user", "-i", i_arg, "-s", s_arg, "-k", k_arg, "-x", x_arg, (char *)0};
 			execv("./user", userOptions);
 			fprintf(stderr, "Print if error %s\n");
 		}
@@ -276,6 +277,7 @@ void cleanup() {
   free(i_arg);
   free(s_arg);
   free(k_arg);
+  free(x_arg);
   printf("Master waiting on all processes do die\n");
   childpid = wait(&status);
 

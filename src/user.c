@@ -52,7 +52,7 @@ void zombieKiller(int);
 
 int main(int argc, char const *argv[])
 {
-	int shmid = 0;
+	int shmid = 0, shmMsgID = 0;
 	long start_seconds, start_nanoseconds;
 	long current_seconds, current_nanoseconds;
 	myPid = getpid();
@@ -73,6 +73,9 @@ int main(int argc, char const *argv[])
 			case 'k':
 				shmid = atoi(optarg);
 				break;
+			case 'x':
+				shmMsgID = atoi(optarg);
+				break;
 			case '?':
 				fprintf(stderr, "    Arguments were not passed correctly to slave %d. Terminating.", myPid);
 				exit(-1);
@@ -82,6 +85,11 @@ int main(int argc, char const *argv[])
 
  	//Trying to attach to shared memory
 	if((shpinfo = (shared_oss_struct *)shmat(shmid, NULL, 0)) == (void *) -1) {
+		perror("    Slave could not attach shared mem");
+		exit(1);
+	}
+
+	if((ossShmMsg = (shmMsg *)shmat(shmMsgID, NULL, 0)) == (void *) -1) {
 		perror("    Slave could not attach shared mem");
 		exit(1);
 	}
@@ -135,6 +143,14 @@ int main(int argc, char const *argv[])
 	// REMAINDER
 	if (r_wait(NULL) == -1)                              /* remainder section */
 	  return 1;
+
+	if(shmdt(shpinfo) == -1) {
+		perror("    Slave could not detach shared memory");
+	}
+
+	if(shmdt(shpinfo) == -1) {
+		perror("    Slave could not detach shared memory");
+	}
 
   	// END
   	printf("    Slave %d exiting\n", processNumber);
