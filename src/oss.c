@@ -21,14 +21,16 @@
 
 const int TOTAL_SLAVES = 100;
 const int MAXSLAVES = 20;
+const long long INCREMENTER = 40000;
 
 void showHelpMessage();
 void intHandler(int);
 void spawnChildren(int);
+void cleanup();
 
 static int max_processes_at_instant = 1; // to count the max running processes at any instance
 int process_spawned = 0; // hold the process number
-
+volatile sig_atomic_t cleanupCalled = 0;
 key_t key;
 key_t shMsgIDKey = 1234;
 int shmid, shmMsgID, semid, i;
@@ -42,6 +44,7 @@ char *default_logname = "default.log";
 char c;
 FILE* file;
 int status;
+int messageReceived = 0;
 
 char *i_arg;
 char *m_arg;
@@ -171,6 +174,7 @@ int main(int argc, char const *argv[])
 
 		shpinfo -> seconds = 0;
 		shpinfo -> nanoseconds = 0;
+		shpinfo -> sigNotReceived = 1;
 		strcpy(shpinfo -> shmMsg, "");
 
 	}
@@ -193,6 +197,10 @@ int main(int argc, char const *argv[])
 			exit(-1);
 		}
 
+		ossShmMsg -> sec = -1;
+		ossShmMsg -> nano = -1;
+		ossShmMsg -> procID = -1;
+
 	}
 
 	//Open file and mark the beginning of the new log
@@ -208,11 +216,27 @@ int main(int argc, char const *argv[])
 	spawnChildren(numChildren);
 
 	// loop through clock and keep checking shmMsg
-	
+
+	while(messageReceived < TOTAL_SLAVES && shpinfo -> seconds < 2 && shpinfo->sigNotReceived) {
+		//myStruct->ossTimer = myStruct->ossTimer + INCREMENTER;
+		shpinfo -> nanoseconds += shpinfo -> nanoseconds + INCREMENTER;
+		if( shpinfo -> nanoseconds > 1000000000 ) {
+			shpinfo -> seconds += 1;
+		}
+
+		if ( ossShmMsg -> procID != -1 ) {
+			fprintf(file, "Master: Child %d is terminating at %ld.%d\n at my time %ld.%ld", ossShmMsg -> procID, ossShmMsg -> sec, ossShmMsg -> nano, shpinfo -> seconds, shpinfo -> nanoseconds);
+			ossShmMsg -> procID = -1;
+		}
+	}
 
 	// Cleanup
 
-	cleanup();
+	if(!cleanupCalled) {
+		cleanupCalled = 1;
+		printf("Master cleanup called from main\n");
+		cleanup();
+	}
 
 	return 0;
 }
@@ -268,7 +292,7 @@ int detachAndRemove(int shmid, shared_oss_struct *shmaddr) {
 
 void cleanup() {
   signal(SIGQUIT, SIG_IGN);
-
+  shpinfo -> sigNotReceived = 0;
   printf("Master sending SIGQUIT\n");
   kill(-getpgrp(), SIGQUIT);
 
@@ -288,6 +312,10 @@ void cleanup() {
 
   if(detachAndRemove(shmMsgID, ossShmMsg) == -1) {
     perror("Failed to destroy shared memory segment");
+  }
+
+  if(fclose(file)) {
+    perror("    Error closing file");
   }
 
   printf("Master about to kill itself\n");

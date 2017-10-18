@@ -9,6 +9,7 @@ typedef struct
 	long seconds;
 	long nanoseconds;
 	char shmMsg[MAX_BUF_SIZE];
+	int sigNotReceived;
 } shared_oss_struct;
 
 typedef struct 
